@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("WORKER") // "ADMIN", "USER", "WORKER"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Supplier {
+  id        Int       @id @default(autoincrement())
+  name      String
+  contact   String?
+  email     String?
+  status    String    @default("Active")
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id           Int           @id @default(autoincrement())
+  name         String
+  sku          String?       // Make optional if not always present
+  categoryId   Int?
+  category     Category?     @relation(fields: [categoryId], references: [id])
+  price        Float
+  quantity     Int           @default(0) // Closing stock
+  openingStock Int           @default(0)
+  unit         String?       @default("pcs")
+  reorderLevel Int           @default(10)
+  emoji        String?       @default("📦")
+  costPrice    Float?        // buy price
+  expiryDate   DateTime?
+  description  String?
+  supplierId   Int?
+  supplier     Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  type      String   // "SALE", "PURCHASE"
+  quantity  Int
+  total     Float
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  userId    Int?     // Who made the transaction
+  createdAt DateTime @default(now())
+}
+
+model Expense {
+  id        Int      @id @default(autoincrement())
+  title     String
+  amount    Float
+  category    String   @default("General") // e.g., Light Bill, Rent, etc.
+  expenseDate DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Recipe {
+  id           Int                @id @default(autoincrement())
+  name         String
+  emoji        String?            @default("🍛")
+  sellingPrice Float?             // price charged per portion
+  portionNote  String?            // e.g. "1 portion ~250 g chicken curry"
+  ingredients  RecipeIngredient[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model RecipeIngredient {
+  id         Int    @id @default(autoincrement())
+  recipeId   Int
+  recipe     Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  name       String
+  quantity   Float  // amount used per portion, in g / ml / pcs
+  unit       String @default("g") // "g", "ml" or "pcs"
+  pricePerKg Float  // price per kg (g), per litre (ml) or per piece (pcs)
+}

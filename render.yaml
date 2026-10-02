@@ -1,0 +1,19 @@
+# One-click setup on Render: New -> Blueprint -> pick this repo.
+# One web service serves BOTH the API and the dashboard.
+services:
+  - type: web
+    name: freshstock
+    runtime: node
+    plan: free
+    buildCommand: cd dashboard && npm install && npm run build && cd ../backend && npm install && npx prisma db push
+    startCommand: cd backend && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false   # paste your Neon connection string
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false   # your Render URL, e.g. https://freshstock.onrender.com
+      - key: NODE_VERSION
+        value: 20
