@@ -121,7 +121,8 @@ async function run() {
     if (['TOTAL SALARY', 'TOTAL', 'MANAGER', 'CAPTAIN', 'INDIAN CHEF', 'TANDOOR CHEF', 'CHINIES CHEF', 'CLEANING', 'HELPERS'].includes(name.toUpperCase())) continue;
     const presentDays = Number(row[33])||0;
     const salary = Number(row[34])||0;
-    const netPay = Number(row[37])||0;
+    const advance = Number(row[35])||0;
+    const netPay = (Number(row[37])||0) + advance; // User considers advance as part of the payroll expense
     if (netPay === 0) continue;
     await prisma.payroll.create({
       data: { employeeName: name, month: new Date('2026-09-30'), salary, presentDays, netPay }
