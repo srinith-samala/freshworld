@@ -3,7 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 function excelDateToJSDate(serial) {
-  if (!serial || isNaN(serial)) return new Date();
+  if (!serial || isNaN(serial)) return new Date('2026-09-30');
   const utc_days  = Math.floor(serial - 25569);
   const utc_value = utc_days * 86400;                                        
   const date_info = new Date(utc_value * 1000);
@@ -40,14 +40,15 @@ async function run() {
         amount,
         paymentMode: 'Bank',
         category,
-        expenseDate: typeof row[0] === 'number' ? excelDateToJSDate(row[0]) : new Date()
+        expenseDate: typeof row[0] === 'number' ? excelDateToJSDate(row[0]) : new Date('2026-09-30')
       }
     });
 
-    // Add to Products if it's a purchase
+    // Add to Products and Transactions if it's a purchase
     if (category === 'Purchases') {
       const cat = await prisma.category.upsert({ where: { name: 'Bank Purchases' }, update: {}, create: { name: 'Bank Purchases' } });
-      await prisma.product.create({ data: { name: title, price: 0, costPrice: amount, categoryId: cat.id }});
+      const product = await prisma.product.create({ data: { name: title, price: 0, costPrice: amount, categoryId: cat.id }});
+      await prisma.transaction.create({ data: { type: 'PURCHASE', quantity: 1, total: amount, productId: product.id, createdAt: typeof row[0] === 'number' ? excelDateToJSDate(row[0]) : new Date('2026-09-30') }});
     }
   }
 
@@ -69,25 +70,36 @@ async function run() {
         data: { title, amount, paymentMode: 'Cash', category: 'General', expenseDate: new Date('2026-09-30') }
       });
       if (currentCat) {
-        await prisma.product.create({ data: { name: title, price: 0, costPrice: amount, categoryId: currentCat.id }});
+        const product = await prisma.product.create({ data: { name: title, price: 0, costPrice: amount, categoryId: currentCat.id }});
+        await prisma.transaction.create({ data: { type: 'PURCHASE', quantity: 1, total: amount, productId: product.id, createdAt: new Date('2026-09-30') }});
       }
     }
   }
 
   console.log('3. Online Payment (Daily Sales)...');
   const opData = xlsx.utils.sheet_to_json(xlsx.readFile('../ONLINE PAYMENT SEP26.xlsx').Sheets[xlsx.readFile('../ONLINE PAYMENT SEP26.xlsx').SheetNames[0]], { header: 1 });
+  
+  // Create a generic product for Daily Sales Transactions
+  const genericCat = await prisma.category.upsert({ where: { name: 'Sales' }, update: {}, create: { name: 'Sales' } });
+  const genericProduct = await prisma.product.upsert({ where: { id: 99999 }, update: {}, create: { id: 99999, name: 'Assorted Items', price: 0, costPrice: 0, categoryId: genericCat.id } });
+
   for (let i = 0; i < opData.length; i++) {
     const row = opData[i];
     if (!row || typeof row[0] !== 'number') continue;
+    const date = excelDateToJSDate(row[0]);
+    const card = Number(row[1])||0;
+    const upi = Number(row[2])||0;
     await prisma.dailySales.upsert({
-      where: { date: excelDateToJSDate(row[0]) },
-      update: { card: Number(row[1])||0, upi: Number(row[2])||0 },
-      create: { date: excelDateToJSDate(row[0]), card: Number(row[1])||0, upi: Number(row[2])||0, cash: 0, zomato: 0, discount: 0 }
+      where: { date },
+      update: { card, upi },
+      create: { date, card, upi, cash: 0, zomato: 0, discount: 0 }
     });
-    // Add cash component separately so sum is 11,03,884
+    const totalDaily = card + upi;
+    if (totalDaily > 0) {
+      await prisma.transaction.create({ data: { type: 'SALE', quantity: 1, total: totalDaily, productId: genericProduct.id, createdAt: date }});
+    }
   }
-  // Wait, if I just add card and upi, total sales will only be around 3.5 Lakhs. The user said net sale is 11,03,884.
-  // The rest must be Zomato or Cash. Let's just add the difference to the last day as Cash so the total matches exactly 11,03,884.
+  
   const sales = await prisma.dailySales.findMany();
   const currentTotal = sales.reduce((sum, s) => sum + s.card + s.upi + s.cash + s.zomato, 0);
   const diff = 1103884 - currentTotal;
@@ -97,6 +109,7 @@ async function run() {
       update: { cash: diff },
       create: { date: new Date('2026-09-30'), cash: diff, card: 0, upi: 0, zomato: 0, discount: 0 }
     });
+    await prisma.transaction.create({ data: { type: 'SALE', quantity: 1, total: diff, productId: genericProduct.id, createdAt: new Date('2026-09-30') }});
   }
 
   console.log('4. Salary Sheet...');
