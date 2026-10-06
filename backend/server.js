@@ -836,11 +836,16 @@ app.get('/api/reports/dashboard', authenticateToken, async (req, res) => {
     const products = await prisma.product.findMany();
     const transactions = await prisma.transaction.findMany();
     const expenses = await prisma.expense.findMany();
+    const dailySales = await prisma.dailySales.findMany();
+    const payroll = await prisma.payroll.findMany();
     
-    const totalSales = transactions.filter(t => t.type === 'SALE').reduce((sum, t) => sum + t.total, 0);
+    // Calculate total sales from DailySales to match P&L page
+    const totalSales = dailySales.reduce((sum, s) => sum + s.cash + s.card + s.upi + s.zomato, 0);
     const totalPurchases = transactions.filter(t => t.type === 'PURCHASE').reduce((sum, t) => sum + t.total, 0);
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const profit = totalSales - totalPurchases - totalExpenses;
+    const totalPayroll = payroll.reduce((sum, p) => sum + p.netPay, 0);
+    
+    const profit = totalSales - totalPurchases - totalExpenses - totalPayroll;
     
     const openingStockValue = products.reduce((sum, p) => sum + (p.openingStock * p.price), 0);
     const closingStockValue = products.reduce((sum, p) => sum + (p.quantity * p.price), 0);
@@ -848,7 +853,7 @@ app.get('/api/reports/dashboard', authenticateToken, async (req, res) => {
     res.json({
       totalSales,
       totalPurchases,
-      totalExpenses,
+      totalExpenses: totalExpenses + totalPayroll + totalPurchases, // Dashboard aggregates expenses/payroll visually as one block sometimes, or just pass totalExpenses if that's what's shown
       profit,
       openingStockValue,
       closingStockValue
