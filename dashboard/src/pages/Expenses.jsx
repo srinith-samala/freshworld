@@ -4,6 +4,8 @@ import Header from '../components/Header';
 import Portal from '../components/Portal';
 
 const CATEGORIES = ['Electricity Bill', 'Rent', 'Salaries', 'Water Bill', 'Internet / Phone', 'Transport', 'Maintenance', 'Packaging', 'Other'];
+const GROUPS = ['Food', 'Gas', 'Rent', 'Salary', 'Marketing', 'Tax', 'General'];
+const PAYMENT_MODES = ['Cash', 'ICICI', 'SVC', 'UPI', 'Other'];
 const PERIODS = [
   { key: 'all', label: 'All time' },
   { key: 'month', label: 'This month' },
@@ -32,7 +34,7 @@ export default function Expenses() {
   const [transactions, setTransactions] = useState([]);
   const [period, setPeriod] = useState('month');
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState(null); // null | { id?, title, amount, category, date }
+  const [form, setForm] = useState(null); // null | { id?, title, amount, category, date, paymentMode, vendor, group }
   const [saving, setSaving] = useState(false);
 
   const authHeaders = () => ({
@@ -70,10 +72,11 @@ export default function Expenses() {
     return { sales, purchases, totalExpenses, net, cats, list: ex };
   }, [transactions, expenses, period]);
 
-  const openAdd = () => setForm({ title: '', amount: '', category: CATEGORIES[0], date: today() });
+  const openAdd = () => setForm({ title: '', amount: '', category: CATEGORIES[0], date: today(), paymentMode: 'Cash', vendor: '', group: 'General' });
   const openEdit = (e) => setForm({
     id: e.id, title: e.title, amount: String(e.amount), category: e.category,
     date: new Date(e.expenseDate || e.createdAt).toISOString().slice(0, 10),
+    paymentMode: e.paymentMode || 'Cash', vendor: e.vendor || '', group: e.group || 'General'
   });
 
   const handleSave = async () => {
@@ -202,9 +205,13 @@ export default function Expenses() {
                 {summary.list.map(e => (
                   <tr key={e.id} style={{ borderTop: '1px solid #E8EAED' }}>
                     <td style={{ padding: '10px 6px', color: '#8A94A6', whiteSpace: 'nowrap' }}>{new Date(e.expenseDate || e.createdAt).toLocaleDateString()}</td>
-                    <td style={{ padding: '10px 6px', fontWeight: 500 }}>{e.title}</td>
+                    <td style={{ padding: '10px 6px', fontWeight: 500 }}>
+                      {e.title}
+                      {(e.vendor || e.group) && <div style={{ fontSize: 10, color: '#8A94A6', marginTop: 2 }}>{[e.vendor, e.group].filter(Boolean).join(' • ')}</div>}
+                    </td>
                     <td style={{ padding: '10px 6px' }}>
                       <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: '#FEF3C7', color: '#92400E', fontWeight: 600 }}>{e.category}</span>
+                      <div style={{ fontSize: 10, color: '#8A94A6', marginTop: 4 }}>{e.paymentMode || 'Cash'}</div>
                     </td>
                     <td style={{ padding: '10px 6px', textAlign: 'right', fontWeight: 600 }}>{money(e.amount)}</td>
                     <td style={{ padding: '10px 6px', textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -226,21 +233,43 @@ export default function Expenses() {
         <Portal><div onClick={() => setForm(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,27,45,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 24, width: '100%', maxWidth: 420, boxShadow: '0 12px 40px rgba(0,0,0,0.2)' }}>
             <h3 style={{ fontSize: 17, fontWeight: 700, marginBottom: 18 }}>{form.id ? 'Edit Expense' : 'Add Expense'}</h3>
-            <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Category</label>
-              <select style={inputStyle} value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-                {!CATEGORIES.includes(form.category) && <option>{form.category}</option>}
-              </select>
+            <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Category</label>
+                <select style={inputStyle} value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+                  {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  {!CATEGORIES.includes(form.category) && <option>{form.category}</option>}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Group</label>
+                <select style={inputStyle} value={form.group} onChange={e => setForm({ ...form, group: e.target.value })}>
+                  {GROUPS.map(g => <option key={g}>{g}</option>)}
+                  {!GROUPS.includes(form.group) && <option>{form.group}</option>}
+                </select>
+              </div>
             </div>
-            <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Title *</label>
-              <input style={inputStyle} placeholder="e.g. March electricity bill" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} autoFocus />
+            <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Title *</label>
+                <input style={inputStyle} placeholder="e.g. March electricity bill" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} autoFocus />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Vendor (Optional)</label>
+                <input style={inputStyle} placeholder="e.g. PAYAL" value={form.vendor} onChange={e => setForm({ ...form, vendor: e.target.value })} />
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>Amount (₹) *</label>
                 <input style={inputStyle} type="number" min="0" step="0.01" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Payment Mode</label>
+                <select style={inputStyle} value={form.paymentMode} onChange={e => setForm({ ...form, paymentMode: e.target.value })}>
+                  {PAYMENT_MODES.map(p => <option key={p}>{p}</option>)}
+                  {!PAYMENT_MODES.includes(form.paymentMode) && <option>{form.paymentMode}</option>}
+                </select>
               </div>
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>Date</label>

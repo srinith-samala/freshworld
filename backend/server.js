@@ -760,7 +760,7 @@ app.get('/api/expenses', authenticateToken, async (req, res) => {
 
 app.post('/api/expenses', authenticateToken, async (req, res) => {
   try {
-    const { title, amount, category, date } = req.body;
+    const { title, amount, category, date, paymentMode, vendor, group } = req.body;
     const amt = parseFloat(amount);
     if (!title || !String(title).trim() || !(amt > 0)) {
       return res.status(400).json({ error: 'Title and an amount greater than 0 are required' });
@@ -770,6 +770,9 @@ app.post('/api/expenses', authenticateToken, async (req, res) => {
         title: String(title).trim(),
         amount: amt,
         category: category || 'General',
+        paymentMode: paymentMode || 'Cash',
+        vendor: vendor || null,
+        group: group || null,
         ...(date ? { expenseDate: new Date(date) } : {})
       }
     });
@@ -784,7 +787,7 @@ app.post('/api/expenses', authenticateToken, async (req, res) => {
 
 app.put('/api/expenses/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
-    const { title, amount, category, date } = req.body;
+    const { title, amount, category, date, paymentMode, vendor, group } = req.body;
     const amt = parseFloat(amount);
     if (!title || !String(title).trim() || !(amt > 0)) {
       return res.status(400).json({ error: 'Title and an amount greater than 0 are required' });
@@ -795,6 +798,9 @@ app.put('/api/expenses/:id', authenticateToken, isAdmin, async (req, res) => {
         title: String(title).trim(),
         amount: amt,
         category: category || 'General',
+        paymentMode: paymentMode || 'Cash',
+        vendor: vendor || null,
+        group: group || null,
         ...(date ? { expenseDate: new Date(date) } : {})
       }
     });
@@ -942,6 +948,97 @@ app.get('/api/users', authenticateToken, isAdmin, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// --- NEW PHASE 1 & 2 ROUTES ---
+app.get('/api/dailysales', authenticateToken, async (req, res) => {
+  try {
+    const sales = await prisma.dailySales.findMany({ orderBy: { date: 'desc' } });
+    res.json(sales);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/dailysales', authenticateToken, async (req, res) => {
+  try {
+    const { date, cash, card, upi, zomato, discount } = req.body;
+    const sale = await prisma.dailySales.create({
+      data: {
+        date: new Date(date),
+        cash: parseFloat(cash) || 0,
+        card: parseFloat(card) || 0,
+        upi: parseFloat(upi) || 0,
+        zomato: parseFloat(zomato) || 0,
+        discount: parseFloat(discount) || 0,
+      }
+    });
+    res.json(sale);
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+app.get('/api/payroll', authenticateToken, async (req, res) => {
+  try {
+    const payroll = await prisma.payroll.findMany({ orderBy: { month: 'desc' } });
+    res.json(payroll);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/payroll', authenticateToken, async (req, res) => {
+  try {
+    const { employeeName, month, presentDays, salary, advance, netPay } = req.body;
+    const pr = await prisma.payroll.create({
+      data: {
+        employeeName,
+        month: new Date(month),
+        presentDays: parseFloat(presentDays) || 0,
+        salary: parseFloat(salary) || 0,
+        advance: parseFloat(advance) || 0,
+        netPay: parseFloat(netPay) || 0,
+      }
+    });
+    res.json(pr);
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+app.get('/api/vendorbills', authenticateToken, async (req, res) => {
+  try {
+    const bills = await prisma.vendorBill.findMany({ orderBy: { date: 'desc' } });
+    res.json(bills);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/vendorbills', authenticateToken, async (req, res) => {
+  try {
+    const { vendorName, invoiceNo, amount, paid, pending, status, date } = req.body;
+    const bill = await prisma.vendorBill.create({
+      data: {
+        vendorName, invoiceNo,
+        amount: parseFloat(amount) || 0,
+        paid: parseFloat(paid) || 0,
+        pending: parseFloat(pending) || 0,
+        status: status || 'Pending',
+        date: date ? new Date(date) : undefined
+      }
+    });
+    res.json(bill);
+  } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+app.put('/api/vendorbills/:id', authenticateToken, async (req, res) => {
+  try {
+    const { vendorName, invoiceNo, amount, paid, pending, status, date } = req.body;
+    const bill = await prisma.vendorBill.update({
+      where: { id: parseInt(req.params.id) },
+      data: {
+        vendorName, invoiceNo,
+        amount: parseFloat(amount) || 0,
+        paid: parseFloat(paid) || 0,
+        pending: parseFloat(pending) || 0,
+        status: status || 'Pending',
+        date: date ? new Date(date) : undefined
+      }
+    });
+    res.json(bill);
+  } catch (err) { res.status(400).json({ error: err.message }); }
 });
 
 const PORT = process.env.PORT || 5000;
