@@ -24,7 +24,8 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 
-app.get('/', (req, res) => res.json({ status: 'ok' }));
+// API Root
+// app.get('/', (req, res) => res.json({ status: 'ok' }));
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 // --- AUTHENTICATION MIDDLEWARE ---
@@ -1039,6 +1040,14 @@ app.put('/api/vendorbills/:id', authenticateToken, async (req, res) => {
     });
     res.json(bill);
   } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+// --- SERVE FRONTEND (FOR PRODUCTION) ---
+const path = require('path');
+const distPath = path.join(__dirname, '../dashboard/dist');
+app.use(express.static(distPath));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 5000;
