@@ -1046,7 +1046,7 @@ app.put('/api/vendorbills/:id', authenticateToken, async (req, res) => {
 const path = require('path');
 const distPath = path.join(__dirname, '../dashboard/dist');
 app.use(express.static(distPath));
-app.get('*', (req, res) => {
+app.get(/(.*)/, (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
