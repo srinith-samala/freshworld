@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { API } from '../config';
 import ProductFormModal from './ProductFormModal';
+import { fmtQty } from '../utils';
+import Portal from './Portal';
 
 export function getStatus(stock, reorder) {
   if (stock === 0) return 'Out of Stock';
@@ -58,15 +60,14 @@ export default function ProductDrawer({ product, onClose, fetchProducts }) {
   const cells = [
     ['Category', product.category?.name || '—'],
     ['Supplier', product.supplier?.name || '—'],
-    ['Buy Price', money(product.costPrice)],
-    ['Sell Price', money(product.price)],
-    ['Stock', `${product.quantity} ${product.unit || 'pcs'}`],
+    ['Price / Unit', product.price ? `${money(product.price)} / ${product.unit || 'pcs'}` : '—'],
+    ['Stock', `${fmtQty(product.quantity)} ${product.unit || 'pcs'}`],
     ['Reorder Level', product.reorderLevel],
   ];
 
   return (
     <>
-      <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }} onClick={onClose}>
+      <Portal><div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }} onClick={onClose}>
         <div style={{ width: 420, maxWidth: '100vw', height: '100vh', background: '#fff', overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)', padding: 32, animation: 'fadeIn 0.2s ease' }} onClick={e => e.stopPropagation()}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
             <div>
@@ -96,7 +97,7 @@ export default function ProductDrawer({ product, onClose, fetchProducts }) {
               <ResponsiveContainer>
                 <LineChart data={history} margin={{ top: 6, right: 8, left: 8, bottom: 0 }}>
                   <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#8A94A6' }} />
-                  <Tooltip formatter={(v) => [`${v} ${product.unit || 'pcs'}`, 'Stock']} labelFormatter={(l, p) => p?.[0]?.payload?.date || l} />
+                  <Tooltip formatter={(v) => [`${fmtQty(v)} ${product.unit || 'pcs'}`, 'Stock']} labelFormatter={(l, p) => p?.[0]?.payload?.date || l} />
                   <Line type="monotone" dataKey="stock" stroke="#2ECC71" strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
@@ -112,7 +113,7 @@ export default function ProductDrawer({ product, onClose, fetchProducts }) {
             <button onClick={handleDelete} style={{ flex: 1, padding: '11px 0', borderRadius: 10, background: '#FEE2E2', color: '#EF4444', border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'DM Sans' }}>Delete</button>
           </div>
         </div>
-      </div>
+      </div></Portal>
       {editing && (
         <ProductFormModal
           product={product}

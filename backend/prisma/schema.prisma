@@ -41,8 +41,8 @@ model Product {
   categoryId   Int?
   category     Category?     @relation(fields: [categoryId], references: [id])
   price        Float
-  quantity     Int           @default(0) // Closing stock
-  openingStock Int           @default(0)
+  quantity     Float         @default(0) // Closing stock
+  openingStock Float         @default(0)
   unit         String?       @default("pcs")
   reorderLevel Int           @default(10)
   emoji        String?       @default("📦")
@@ -59,7 +59,7 @@ model Product {
 model Transaction {
   id        Int      @id @default(autoincrement())
   type      String   // "SALE", "PURCHASE"
-  quantity  Int
+  quantity  Float
   total     Float
   productId Int
   product   Product  @relation(fields: [productId], references: [id])
@@ -82,25 +82,4 @@ model Notification {
   message   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
-}
-
-model Recipe {
-  id           Int                @id @default(autoincrement())
-  name         String
-  emoji        String?            @default("🍛")
-  sellingPrice Float?             // price charged per portion
-  portionNote  String?            // e.g. "1 portion ~250 g chicken curry"
-  ingredients  RecipeIngredient[]
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-}
-
-model RecipeIngredient {
-  id         Int    @id @default(autoincrement())
-  recipeId   Int
-  recipe     Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  name       String
-  quantity   Float  // amount used per portion, in g / ml / pcs
-  unit       String @default("g") // "g", "ml" or "pcs"
-  pricePerKg Float  // price per kg (g), per litre (ml) or per piece (pcs)
 }

@@ -20,7 +20,6 @@ export default function Sidebar() {
   const navItems = [...baseNavItems];
   if (role === 'ADMIN') {
     navItems.splice(navItems.length - 1, 0, { to: '/expenses', label: 'Expenses', emoji: '💸' });
-    navItems.splice(navItems.length - 1, 0, { to: '/recipe-costing', label: 'Recipe Costing', emoji: '🧮' });
     navItems.push({ to: '/users', label: 'Users', emoji: '👥' });
   }
 
@@ -51,7 +50,7 @@ export default function Sidebar() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 22 }}>🛒</span>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 18, letterSpacing: '-0.3px' }}>FreshStock</span>
+          <span style={{ color: '#fff', fontWeight: 700, fontSize: 18, letterSpacing: '-0.3px' }}>Takatak</span>
         </div>
         <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11, marginTop: 4, marginLeft: 32 }}>Inventory Manager</p>
       </div>
