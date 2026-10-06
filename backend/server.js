@@ -845,7 +845,8 @@ app.get('/api/reports/dashboard', authenticateToken, async (req, res) => {
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     const totalPayroll = payroll.reduce((sum, p) => sum + p.netPay, 0);
     
-    const profit = totalSales - totalPurchases - totalExpenses - totalPayroll;
+    // Profit = Sales - Expenses - Payroll (ignoring purchases to prevent double counting)
+    const profit = totalSales - totalExpenses - totalPayroll;
     
     const openingStockValue = products.reduce((sum, p) => sum + (p.openingStock * p.price), 0);
     const closingStockValue = products.reduce((sum, p) => sum + (p.quantity * p.price), 0);
@@ -853,7 +854,7 @@ app.get('/api/reports/dashboard', authenticateToken, async (req, res) => {
     res.json({
       totalSales,
       totalPurchases,
-      totalExpenses: totalExpenses + totalPayroll + totalPurchases, // Dashboard aggregates expenses/payroll visually as one block sometimes, or just pass totalExpenses if that's what's shown
+      totalExpenses: totalExpenses + totalPayroll, // Exclude totalPurchases to prevent double counting
       profit,
       openingStockValue,
       closingStockValue
