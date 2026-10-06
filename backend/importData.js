@@ -114,13 +114,17 @@ async function run() {
 
   console.log('4. Salary Sheet...');
   const salData = xlsx.utils.sheet_to_json(xlsx.readFile('../SALARY SHEET TAKTAK SEP26.xlsx').Sheets[xlsx.readFile('../SALARY SHEET TAKTAK SEP26.xlsx').SheetNames[0]], { header: 1 });
-  for (let i = 3; i < salData.length; i++) {
+  for (let i = 2; i < salData.length; i++) {
     const row = salData[i];
-    if (!row || !row[1] || typeof row[7] !== 'number') continue;
+    if (!row || !row[1]) continue;
     const name = String(row[1]).trim();
-    if (['TOTAL SALARY', 'TOTAL'].includes(name.toUpperCase())) continue;
+    if (['TOTAL SALARY', 'TOTAL', 'MANAGER', 'CAPTAIN', 'INDIAN CHEF', 'TANDOOR CHEF', 'CHINIES CHEF', 'CLEANING', 'HELPERS'].includes(name.toUpperCase())) continue;
+    const presentDays = Number(row[33])||0;
+    const salary = Number(row[34])||0;
+    const netPay = Number(row[37])||0;
+    if (netPay === 0) continue;
     await prisma.payroll.create({
-      data: { employeeName: name, month: new Date('2026-09-30'), salary: Number(row[3])||0, presentDays: Number(row[2])||0, netPay: Number(row[7])||0 }
+      data: { employeeName: name, month: new Date('2026-09-30'), salary, presentDays, netPay }
     });
   }
 
